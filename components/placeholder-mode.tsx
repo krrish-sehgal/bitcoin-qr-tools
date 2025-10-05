@@ -1,4 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Github, Mail } from "lucide-react"
 
 interface PlaceholderModeProps {
   title: string
@@ -36,6 +38,36 @@ export function PlaceholderMode({ title, description }: PlaceholderModeProps) {
           <p className="text-sm text-muted-foreground">
             Follows the same Bitcoin-themed design system as the rest of the app.
           </p>
+        </div>
+      </div>
+
+      {/* Contribution Section */}
+      <div className="mt-8 pt-6 border-t border-border">
+        <div className="text-center space-y-4">
+          <h4 className="text-lg font-semibold text-foreground">Want to Contribute?</h4>
+          <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+            This is an open-source project. Contributions, feature requests, and feedback are always welcome!
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.open('https://github.com/krrish-sehgal/bitcoin-qr-tools', '_blank')}
+            >
+              <Github className="w-4 h-4" />
+              Contribute on GitHub
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.location.href = 'mailto:krrishsehgal03@gmail.com?subject=Bitcoin QR Tools - Feature Request'}
+            >
+              <Mail className="w-4 h-4" />
+              Request Features
+            </Button>
+          </div>
         </div>
       </div>
     </div>
