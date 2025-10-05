@@ -2,6 +2,8 @@
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SeedPhraseQR } from "@/components/seed-phrase-qr"
+import { WalletDescriptorQR } from "@/components/wallet-descriptor-qr"
+import { TransactionQR } from "@/components/transaction-qr"
 import { PlaceholderMode } from "@/components/placeholder-mode"
 import { BitcoinIcon } from "@/components/bitcoin-icon"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -59,17 +61,11 @@ export function BitcoinQRGenerator() {
           </TabsContent>
 
           <TabsContent value="descriptor" className="p-6">
-            <PlaceholderMode
-              title="Wallet Descriptor QR"
-              description="Generate QR codes from wallet descriptors for easy backup and recovery."
-            />
+            <WalletDescriptorQR />
           </TabsContent>
 
           <TabsContent value="transaction" className="p-6">
-            <PlaceholderMode
-              title="Transaction QR"
-              description="Create QR codes for Bitcoin transactions to share payment requests."
-            />
+            <TransactionQR />
           </TabsContent>
 
           <TabsContent value="other" className="p-6">

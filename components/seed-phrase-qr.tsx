@@ -2,31 +2,111 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import QRCode from "qrcode"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
+import { wordlists } from "bip39"
+
+// Get English BIP39 wordlist (2048 words)
+const BIP39_WORDLIST = wordlists.english
 
 export function SeedPhraseQR() {
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [words, setWords] = useState<string[]>(Array(12).fill(""))
   const [qrCodeUrl, setQrCodeUrl] = useState("")
   const [error, setError] = useState("")
+  const [activeInput, setActiveInput] = useState<number | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
   const handleWordCountChange = (count: 12 | 24) => {
     setWordCount(count)
     setWords(Array(count).fill(""))
     setQrCodeUrl("")
     setError("")
+    setSuggestions([])
+    setActiveInput(null)
   }
 
   const handleWordChange = (index: number, value: string) => {
     const newWords = [...words]
-    newWords[index] = value.trim().toLowerCase()
+    const inputValue = value.trim().toLowerCase()
+    newWords[index] = inputValue
     setWords(newWords)
+
+    // Filter BIP39 wordlist for suggestions
+    if (inputValue.length > 0) {
+      const filtered = BIP39_WORDLIST.filter((word) => word.startsWith(inputValue)).slice(0, 10)
+      setSuggestions(filtered)
+      setSelectedSuggestionIndex(0)
+      setActiveInput(index)
+    } else {
+      setSuggestions([])
+      setActiveInput(null)
+    }
   }
+
+  const selectSuggestion = (index: number, word: string) => {
+    const newWords = [...words]
+    newWords[index] = word
+    setWords(newWords)
+    setSuggestions([])
+    setActiveInput(null)
+    
+    // Auto-focus next input
+    if (index < wordCount - 1) {
+      const nextInput = document.querySelector(`input[data-index="${index + 1}"]`) as HTMLInputElement
+      nextInput?.focus()
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (suggestions.length === 0) return
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev))
+        break
+      case "ArrowUp":
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : 0))
+        break
+      case "Enter":
+        e.preventDefault()
+        if (suggestions.length > 0) {
+          selectSuggestion(index, suggestions[selectedSuggestionIndex])
+        }
+        break
+      case "Escape":
+        setSuggestions([])
+        setActiveInput(null)
+        break
+      case "Tab":
+        if (suggestions.length > 0) {
+          e.preventDefault()
+          selectSuggestion(index, suggestions[selectedSuggestionIndex])
+        }
+        break
+    }
+  }
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setSuggestions([])
+        setActiveInput(null)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handlePaste = (e: React.ClipboardEvent, index: number) => {
     e.preventDefault()
@@ -127,21 +207,53 @@ export function SeedPhraseQR() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {words.map((word, index) => (
             <div key={index} className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono z-10">
                 {index + 1}.
               </span>
               <Input
+                data-index={index}
                 value={word}
                 onChange={(e) => handleWordChange(index, e.target.value)}
                 onPaste={(e) => handlePaste(e, index)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                onFocus={() => {
+                  if (word.length > 0) {
+                    handleWordChange(index, word)
+                  }
+                }}
                 placeholder={`word ${index + 1}`}
                 className="pl-10 font-mono text-sm bg-secondary/30"
+                autoComplete="off"
               />
+              
+              {/* Suggestions dropdown */}
+              {activeInput === index && suggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-auto"
+                >
+                  {suggestions.map((suggestion, suggestionIdx) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => selectSuggestion(index, suggestion)}
+                      onMouseEnter={() => setSelectedSuggestionIndex(suggestionIdx)}
+                      className={`w-full px-3 py-2 text-left text-sm font-mono cursor-pointer transition-colors ${
+                        suggestionIdx === selectedSuggestionIndex
+                          ? "bg-accent text-accent-foreground"
+                          : "hover:bg-accent/50"
+                      }`}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Paste your entire {wordCount}-word seed phrase into any box, or enter words individually.
+          Paste your entire {wordCount}-word seed phrase into any box, or enter words individually. Press Tab or Enter to select suggestions.
         </p>
       </div>
 
